@@ -1,12 +1,6 @@
 include_directories(
-    ${psi_tools_dir}/psi/include
     include
     src
-)
-
-link_directories(
-    ${psi_shared_dir}/build/bin/${CMAKE_BUILD_TYPE}
-    ${psi_tools_dir}/build/bin/${CMAKE_BUILD_TYPE}
 )
 
 set (SOURCES
