@@ -19,7 +19,12 @@ set(TEST_SRC
 )
 psi_make_tests("Json" "${TEST_SRC}" "psi-json")
 
-if(${PSI_BUILD_TESTS})
+if(NOT EXISTS ${PSI_BUILD_TESTS})
+    set(BUILD_TESTS true)
+else()
+    set(BUILD_TESTS ${PSI_BUILD_TESTS})
+endif()
+if(${BUILD_TESTS})
     add_custom_command(TARGET PSI_TEST_Json POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/tests/test_data ${BUILD_OUT})
 endif()
 
