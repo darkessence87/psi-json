@@ -41,7 +41,7 @@ JTree JsonParser::loadFromFile(const std::string &fName)
     auto jtree = parse(f);
     f.close();
 
-    return std::move(jtree);
+    return jtree;
 }
 
 JTree JsonParser::loadFromFile(const std::wstring &fName)
@@ -61,7 +61,7 @@ JTree JsonParser::loadFromFile(const std::wstring &fName)
     auto jtree = parse(f);
     f.close();
 
-    return std::move(jtree);
+    return jtree;
 }
 
 JTree JsonParser::loadFromString(const std::string &str)
@@ -432,7 +432,6 @@ bool JsonParser::parseValue(auto &is, JParent parent, JValue &value)
 
 JParent JsonParser::getParent(JParent &parent)
 {
-    JParent result = (JObject *)nullptr;
     std::visit([&](auto &&v) { parent = v->parent(); }, parent);
     return parent;
 }
