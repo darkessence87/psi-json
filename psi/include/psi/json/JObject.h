@@ -2,8 +2,9 @@
 
 #include "JTypes.h"
 
-#include <list>
+#include <map>
 #include <optional>
+#include <vector>
 
 namespace psi::json {
 
@@ -11,13 +12,14 @@ namespace psi::json {
  * @brief 
  * 
  */
-class JObject
+class JObject final
 {
-    using DataType = std::list<std::pair<JKey, JValue>>;
+    using DataType = std::multimap<JKey, JValue>;
 
 public:
     JObject() = default;
     JObject(JParent parent);
+    ~JObject() = default;
 
     /**
      * @brief 
@@ -31,17 +33,17 @@ public:
      * @brief 
      * 
      * @param key 
-     * @return JValue* 
+     * @return const JValue*
      */
-    JValue *at(const JKey &key);
+    const JValue *at(const JKey &key) const;
 
     /**
      * @brief 
      * 
      * @param key 
-     * @return std::optional<JValue> 
+     * @return std::optional<const JValue*>
      */
-    std::optional<JValue> get(const JKey &key) const;
+    std::optional<const JValue *> get(const JKey &key) const;
 
     /**
      * @brief 
@@ -62,31 +64,31 @@ public:
      * 
      * @return std::list<JKey> 
      */
-    std::list<JKey> getKeys() const;
+    std::vector<JKey> getKeys() const;
 
     /**
      * @brief Get the Array object
      * 
      * @param key 
-     * @return std::optional<JArray *> 
+     * @return std::optional<const JArray *>
      */
-    std::optional<JArray *> getArray(const JKey &key);
+    std::optional<const JArray *> getArray(const JKey &key) const;
 
     /**
      * @brief Get the Object object
      * 
      * @param key 
-     * @return std::optional<JObject *> 
+     * @return std::optional<JObject *>
      */
-    std::optional<JObject *> getObject(const JKey &key);
+    std::optional<const JObject *> getObject(const JKey &key) const;
 
     /**
      * @brief Get the Array Object object
      * 
      * @param key 
-     * @return std::list<std::optional<JObject *>> 
+     * @return std::vector<std::optional<JObject *>>
      */
-    std::list<std::optional<JObject *>> getArrayObject(const JKey &key);
+    std::vector<std::optional<const JObject *>> getArrayObject(const JKey &key) const;
 
     /**
      * @brief Get the Number Int64 object
@@ -173,42 +175,42 @@ public:
      * @brief Get the Array Number Int64 object
      * 
      * @param key 
-     * @return std::list<int64_t> 
+     * @return std::vector<int64_t>
      */
-    std::list<int64_t> getArrayNumberInt64(const JKey &key) const;
+    std::vector<int64_t> getArrayNumberInt64(const JKey &key) const;
 
     /**
      * @brief Get the Array String object
      * 
      * @param key 
-     * @return std::list<std::string> 
+     * @return std::vector<std::string>
      */
-    std::list<std::string> getArrayString(const JKey &key) const;
+    std::vector<std::string> getArrayString(const JKey &key) const;
 
     /**
      * @brief Get the Array String W object
      * 
      * @param key 
-     * @return std::list<std::wstring> 
+     * @return std::vector<std::wstring>
      */
-    std::list<std::wstring> getArrayStringW(const JKey &key) const;
+    std::vector<std::wstring> getArrayStringW(const JKey &key) const;
 
     /**
      * @brief 
      * 
      * @param os 
-     * @return std::ostream& 
+     * @return std::ostream&
      */
     std::ostream &operator<<(std::ostream &os) const;
 
     /**
      * @brief 
      * 
-     * @return std::string 
+     * @return std::string
      */
     std::string toString() const;
 
-protected:
+private:
     template <typename T>
     T getNumber(const JKey &key) const;
 
@@ -216,13 +218,19 @@ protected:
     T getString(const JKey &key) const;
 
     template <typename T, typename V>
-    std::list<T> getArrayOf(const JKey &key) const;
+    std::vector<T> getArrayOf(const JKey &key) const;
 
     template <typename R, typename V>
     R getAs(const JValue &value) const;
 
+    JObject(const JObject &) = delete;
+    JObject operator=(const JObject &) = delete;
+    JObject(JObject &&) = default;
+    JObject &operator=(JObject &&) = default;
+
 private:
     DataType m_data;
+    std::vector<DataType::const_iterator> m_data_indices;
     JParent m_parent;
 };
 

@@ -11,7 +11,7 @@ namespace psi::json {
  * @brief 
  * 
  */
-class JTree
+class JTree final
 {
 public:
     /**
@@ -25,27 +25,26 @@ public:
      * 
      * @param head 
      */
-    JTree(const JValue &head);
+    JTree(JValue &&head);
 
-    /**
-     * @brief Destroy the JTree object
-     * 
-     */
-    virtual ~JTree() = default;
+    JTree(const JTree &) = delete;
+    JTree operator=(const JTree &) = delete;
+    JTree(JTree &&) = default;
+    JTree &operator=(JTree &&) = default;
 
     /**
      * @brief 
      * 
      * @return std::optional<JObject *> 
      */
-    std::optional<JObject *> asObject();
+    std::optional<const JObject *> asObject();
 
     /**
      * @brief 
      * 
      * @return std::optional<JArray *> 
      */
-    std::optional<JArray *> asArray();
+    std::optional<const JArray *> asArray();
 
     /**
      * @brief 
@@ -55,7 +54,7 @@ public:
     std::string toString() const;
 
 private:
-    JValue m_head = JObject();
+    JValue m_head;
 };
 
 } // namespace psi::json

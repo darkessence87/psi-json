@@ -10,22 +10,16 @@ JArray::JArray(JParent parent)
 {
 }
 
-JArray::JArray(std::initializer_list<JValue> &&list)
-{
-    for (auto &&v : list) {
-        m_data.emplace_back(v);
-    }
-}
-
 void JArray::add(JValue &&value)
 {
-    m_data.emplace_back(std::move(value));
+    m_data.emplace_back(std::forward<JValue>(value));
 }
 
-std::optional<std::list<JValue *>> JArray::data()
+std::optional<std::vector<const JValue *>> JArray::data() const
 {
-    std::list<JValue *> result;
-    for (auto &v : m_data) {
+    std::vector<const JValue *> result;
+    result.reserve(m_data.size());
+    for (const auto &v : m_data) {
         result.emplace_back(&v);
     }
     return m_data.empty() ? std::nullopt : std::make_optional(result);
@@ -51,10 +45,10 @@ std::string JArray::toString() const
         std::visit(
             [&os](auto &&v) {
                 using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, JObject>) {
-                    os << v.toString();
-                } else if constexpr (std::is_same_v<T, JArray>) {
-                    os << v.toString();
+                if constexpr (std::is_same_v<T, std::unique_ptr<JObject>>) {
+                    os << v->toString();
+                } else if constexpr (std::is_same_v<T, std::unique_ptr<JArray>>) {
+                    os << v->toString();
                 } else {
                     os << v;
                 }

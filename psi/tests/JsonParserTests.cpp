@@ -16,28 +16,35 @@ using namespace psi::test;
 TEST(JsonParserTests, loadFromFile_test1)
 {
     auto tree = JsonParser::loadFromFile("test.json");
-    JObject expectedTree;
-    expectedTree.insert("first_name", "John");
-    expectedTree.insert("last_name", "Smithærson");
-    expectedTree.insert("is_alive", true);
-    expectedTree.insert("age", JNumber(27));
-    JObject address;
-    address.insert("street_address", "21 2nd Street");
-    address.insert("city", "New York");
-    address.insert("state", "NY");
-    address.insert("postal_code", "10021-3100");
-    expectedTree.insert("address", address);
-    JObject phone1;
-    phone1.insert("type", "home");
-    phone1.insert("number", "212 555-1234");
-    JObject phone2;
-    phone2.insert("type", "office");
-    phone2.insert("number", "646 555-4567");
-    expectedTree.insert("phone_numbers", JArray {phone1, phone2});
-    expectedTree.insert("children", JArray {"Catherine", "Thomas", "Trevor"});
-    expectedTree.insert("spouse", JNull());
+    auto expectedTree = std::make_unique<JObject>();
+    expectedTree->insert("first_name", "John");
+    expectedTree->insert("last_name", "Smithærson");
+    expectedTree->insert("is_alive", true);
+    expectedTree->insert("age", JNumber(27));
+    auto address = std::make_unique<JObject>();
+    address->insert("street_address", "21 2nd Street");
+    address->insert("city", "New York");
+    address->insert("state", "NY");
+    address->insert("postal_code", "10021-3100");
+    expectedTree->insert("address", std::move(address));
+    auto phone1 = std::make_unique<JObject>();
+    phone1->insert("type", "home");
+    phone1->insert("number", "212 555-1234");
+    auto phone2 = std::make_unique<JObject>();
+    phone2->insert("type", "office");
+    phone2->insert("number", "646 555-4567");
+    auto phone_numbers = std::make_unique<JArray>();
+    phone_numbers->add(std::move(phone1));
+    phone_numbers->add(std::move(phone2));
+    expectedTree->insert("phone_numbers", std::move(phone_numbers));
+    auto children = std::make_unique<JArray>();
+    children->add("Catherine");
+    children->add("Thomas");
+    children->add("Trevor");
+    expectedTree->insert("children", std::move(children));
+    expectedTree->insert("spouse", JNull());
 
-    EXPECT_EQ(tree.toString(), expectedTree.toString());
+    EXPECT_EQ(tree.toString(), expectedTree->toString());
 }
 
 TEST(JsonParserTests, loadFromFile_test2)
@@ -87,7 +94,7 @@ TEST(JsonParserTests, small_dict)
     auto jtree = JsonParser::loadFromFile("small-dict.json");
     size_t objSz = 1;
 
-    std::stack<JObject *> st;
+    std::stack<const JObject *> st;
     st.push(jtree.asObject().value());
     while (!st.empty()) {
         auto obj = st.top();
@@ -120,8 +127,7 @@ TEST(JsonParserTests, small_dict_performance)
     constexpr size_t N = 100;
     JTree result[N];
     size_t k = 0;
-    TestHelper::timeFn(
-        "small-dict current", [&]() { result[k++] = JsonParser::loadFromString(to_parse); }, N);
+    TestHelper::timeFn("small-dict current", [&]() { result[k++] = JsonParser::loadFromString(to_parse); }, N);
 }
 
 TEST(JsonParserTests, medium_dict)
@@ -129,7 +135,7 @@ TEST(JsonParserTests, medium_dict)
     auto jtree = JsonParser::loadFromFile("medium-dict.json");
     size_t objSz = 1;
 
-    std::stack<JObject *> st;
+    std::stack<const JObject *> st;
     st.push(jtree.asObject().value());
     while (!st.empty()) {
         auto obj = st.top();
@@ -162,8 +168,7 @@ TEST(JsonParserTests, DISABLED_medium_dict_performance)
     constexpr size_t N = 10;
     JTree result[N];
     size_t k = 0;
-    TestHelper::timeFn(
-        "medium-dict current", [&]() { result[k++] = JsonParser::loadFromString(to_parse); }, N);
+    TestHelper::timeFn("medium-dict current", [&]() { result[k++] = JsonParser::loadFromString(to_parse); }, N);
 }
 
 TEST(JsonParserTests, DISABLED_large_dict)
@@ -171,7 +176,7 @@ TEST(JsonParserTests, DISABLED_large_dict)
     auto jtree = JsonParser::loadFromFile("large-dict.json");
     size_t objSz = 1;
 
-    std::stack<JObject *> st;
+    std::stack<const JObject *> st;
     st.push(jtree.asObject().value());
     while (!st.empty()) {
         auto obj = st.top();
@@ -204,8 +209,7 @@ TEST(JsonParserTests, DISABLED_large_dict_performance)
     constexpr size_t N = 1;
     JTree result[N];
     size_t k = 0;
-    TestHelper::timeFn(
-        "large-dict current", [&]() { result[k++] = JsonParser::loadFromString(to_parse); }, N);
+    TestHelper::timeFn("large-dict current", [&]() { result[k++] = JsonParser::loadFromString(to_parse); }, N);
 }
 
 TEST(JsonParserTests, loadFromString)

@@ -83,12 +83,12 @@ JTree JsonParser::parse(auto &is)
     std::visit(
         [&](auto &&v) {
             using T = std::decay_t<decltype(v)>;
-            if constexpr (std::is_same_v<JObject, T>) {
+            if constexpr (std::is_same_v<std::unique_ptr<JObject>, T>) {
                 isValidInput = true;
-                stack.emplace(&v);
-            } else if constexpr (std::is_same_v<JArray, T>) {
+                stack.emplace(v.get());
+            } else if constexpr (std::is_same_v<std::unique_ptr<JArray>, T>) {
                 isValidInput = true;
-                stack.emplace(&v);
+                stack.emplace(v.get());
             }
         },
         head);
@@ -122,7 +122,7 @@ JTree JsonParser::parse(auto &is)
         return {};
     }
 
-    return JTree(head);
+    return JTree {std::move(head)};
 }
 
 bool JsonParser::parseTrue(auto &is, JValue &value)
@@ -399,10 +399,10 @@ bool JsonParser::parseValue(auto &is, JParent parent, JValue &value)
     auto c = nextChar(is);
     switch (c) {
     case '{':
-        value = JObject(parent);
+        value = std::make_unique<JObject>(parent);
         return true;
     case '[':
-        value = JArray(parent);
+        value = std::make_unique<JArray>(parent);
         return true;
     case '"': {
         is.seekg(-1, std::ios_base::cur);
@@ -456,15 +456,15 @@ bool JsonParser::parseObject(auto &is, JObject &obj, auto &stack)
         [&](auto &&v) {
             obj.insert(key, std::move(value));
             using T = std::decay_t<decltype(v)>;
-            if constexpr (std::is_same_v<JObject, T>) {
+            if constexpr (std::is_same_v<std::unique_ptr<JObject>, T>) {
                 if (!nextParentAvailable(is)) {
                     is.seekg(-1, std::ios_base::cur);
-                    stack.emplace(std::get_if<JObject>(obj.at(key)));
+                    stack.emplace(std::get_if<std::unique_ptr<JObject>>(obj.at(key))->get());
                 }
-            } else if constexpr (std::is_same_v<JArray, T>) {
+            } else if constexpr (std::is_same_v<std::unique_ptr<JArray>, T>) {
                 if (!nextParentAvailable(is)) {
                     is.seekg(-1, std::ios_base::cur);
-                    stack.emplace(std::get_if<JArray>(obj.at(key)));
+                    stack.emplace(std::get_if<std::unique_ptr<JArray>>(obj.at(key))->get());
                 }
             }
         },
@@ -485,15 +485,15 @@ bool JsonParser::parseArray(auto &is, JArray &arr, auto &stack)
         [&](auto &&v) {
             arr.add(std::move(value));
             using T = std::decay_t<decltype(v)>;
-            if constexpr (std::is_same_v<JObject, T>) {
+            if constexpr (std::is_same_v<std::unique_ptr<JObject>, T>) {
                 if (!nextParentAvailable(is)) {
                     is.seekg(-1, std::ios_base::cur);
-                    stack.emplace(&std::get<JObject>(arr.m_data.back()));
+                    stack.emplace(std::get<std::unique_ptr<JObject>>(arr.m_data.back()).get());
                 }
-            } else if constexpr (std::is_same_v<JArray, T>) {
+            } else if constexpr (std::is_same_v<std::unique_ptr<JArray>, T>) {
                 if (!nextParentAvailable(is)) {
                     is.seekg(-1, std::ios_base::cur);
-                    stack.emplace(&std::get<JArray>(arr.m_data.back()));
+                    stack.emplace(std::get<std::unique_ptr<JArray>>(arr.m_data.back()).get());
                 }
             }
         },

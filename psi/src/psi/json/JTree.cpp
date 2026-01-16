@@ -5,29 +5,31 @@
 
 namespace psi::json {
 
-JTree::JTree(const JValue &head)
-    : m_head(head)
+JTree::JTree(JValue &&head)
+    : m_head(std::move(head))
 {
 }
 
-std::optional<JObject *> JTree::asObject()
+std::optional<const JObject *> JTree::asObject()
 {
-    return std::make_optional(std::get_if<JObject>(&m_head));
+    auto ptr = std::get_if<std::unique_ptr<JObject>>(&m_head);
+    return ptr ? std::make_optional(ptr->get()) : std::nullopt;
 }
 
-std::optional<JArray *> JTree::asArray()
+std::optional<const JArray *> JTree::asArray()
 {
-    return std::make_optional(std::get_if<JArray>(&m_head));
+    auto ptr = std::get_if<std::unique_ptr<JArray>>(&m_head);
+    return ptr ? std::make_optional(ptr->get()) : std::nullopt;
 }
 
 std::string JTree::toString() const
 {
-    if (std::holds_alternative<JObject>(m_head)) {
-        return std::get<JObject>(m_head).toString();
+    if (std::holds_alternative<std::unique_ptr<JObject>>(m_head)) {
+        return std::get<std::unique_ptr<JObject>>(m_head)->toString();
     }
 
-    if (std::holds_alternative<JArray>(m_head)) {
-        return std::get<JArray>(m_head).toString();
+    if (std::holds_alternative<std::unique_ptr<JArray>>(m_head)) {
+        return std::get<std::unique_ptr<JArray>>(m_head)->toString();
     }
 
     return "";

@@ -2,8 +2,8 @@
 
 #include "JTypes.h"
 
-#include <list>
 #include <optional>
+#include <vector>
 
 namespace psi::json {
 
@@ -15,14 +15,11 @@ class JsonParser;
  */
 class JArray
 {
-    using DataType = std::list<JValue>;
+    using DataType = std::vector<JValue>;
 
 public:
-    /**
-     * @brief Construct a new JArray object
-     * 
-     */
     JArray() = default;
+    ~JArray() = default;
 
     /**
      * @brief Construct a new JArray object
@@ -34,13 +31,6 @@ public:
     /**
      * @brief Construct a new JArray object
      * 
-     * @param list 
-     */
-    JArray(std::initializer_list<JValue> &&list);
-
-    /**
-     * @brief 
-     * 
      * @param value 
      */
     void add(JValue &&value);
@@ -48,9 +38,9 @@ public:
     /**
      * @brief 
      * 
-     * @return std::optional<std::list<JValue *>> 
+     * @return std::optional<std::vector<const JValue *>>
      */
-    std::optional<std::list<JValue *>> data();
+    std::optional<std::vector<const JValue *>> data() const;
 
     /**
      * @brief 
@@ -73,6 +63,12 @@ public:
      * @return std::string 
      */
     std::string toString() const;
+
+private:
+    JArray(const JArray &) = delete;
+    JArray operator=(const JArray &) = delete;
+    JArray(JArray &&) = default;
+    JArray &operator=(JArray &&) = default;
 
 private:
     DataType m_data;

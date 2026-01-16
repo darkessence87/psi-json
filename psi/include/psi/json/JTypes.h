@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <variant>
 
@@ -36,7 +37,7 @@ using JKey = std::string;
  * @brief 
  * 
  */
-using JValue = std::variant<JNull, JNumber, JString, bool, JObject, JArray>;
+using JValue = std::variant<JNull, JNumber, JString, bool, std::unique_ptr<JObject>, std::unique_ptr<JArray>>;
 
 /**
  * @brief 

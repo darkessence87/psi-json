@@ -14,39 +14,27 @@ JObject::JObject(JParent parent)
 
 void JObject::insert(JKey &&key, JValue &&value)
 {
-    m_data.emplace_back(std::make_pair(std::move(key), std::move(value)));
+    const auto it = m_data.emplace(std::make_pair(std::forward<JKey>(key), std::forward<JValue>(value)));
+    m_data_indices.emplace_back(it);
 }
 
-// void JObject::insert(const JKey &key, JValue &&value)
-// {
-//     m_data.emplace_back(std::make_pair(std::move(key), value));
-// }
-
-JValue *JObject::at(const JKey &key)
+const JValue *JObject::at(const JKey &key) const
 {
-    for (auto &p : m_data) {
-        if (p.first == key) {
-            return &p.second;
-        }
-    }
-    return nullptr;
+    auto it = m_data.find(key);
+    return it == m_data.end() ? nullptr : &it->second;
 }
 
-std::optional<JValue> JObject::get(const JKey &key) const
+std::optional<const JValue *> JObject::get(const JKey &key) const
 {
-    for (auto &p : m_data) {
-        if (p.first == key) {
-            return std::make_optional(p.second);
-        }
-    }
-    return std::nullopt;
+    auto it = m_data.find(key);
+    return it == m_data.end() ? std::nullopt : std::make_optional(&it->second);
 }
 
-std::list<JKey> JObject::getKeys() const
+std::vector<JKey> JObject::getKeys() const
 {
-    std::list<JKey> result;
-    for (auto it : m_data) {
-        result.emplace_back(it.first);
+    std::vector<JKey> result;
+    for (auto it : m_data_indices) {
+        result.emplace_back(it->first);
     }
     return result;
 }
@@ -66,25 +54,25 @@ std::string JObject::toString() const
     std::ostringstream os;
 
     os << "{";
-    for (auto it : m_data) {
-        os << "\"" << it.first << "\":";
+    for (const auto &it : m_data_indices) {
+        os << "\"" << it->first << "\":";
         std::visit(
             [&os](auto &&v) {
                 using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, JObject>) {
-                    os << v.toString();
-                } else if constexpr (std::is_same_v<T, JArray>) {
-                    os << v.toString();
+                if constexpr (std::is_same_v<T, std::unique_ptr<JObject>>) {
+                    os << v->toString();
+                } else if constexpr (std::is_same_v<T, std::unique_ptr<JArray>>) {
+                    os << v->toString();
                 } else if constexpr (std::is_same_v<T, bool>) {
                     os << std::boolalpha << v;
                 } else {
                     os << v;
                 }
             },
-            it.second);
+            it->second);
         os << ",";
     }
-    if (!m_data.empty()) {
+    if (!m_data_indices.empty()) {
         os.seekp(-1, std::ios_base::cur);
     }
     os << "}";
@@ -98,44 +86,44 @@ std::ostream &JObject::operator<<(std::ostream &os) const
     return os;
 }
 
-std::optional<JArray *> JObject::getArray(const JKey &key)
+std::optional<const JArray *> JObject::getArray(const JKey &key) const
 {
-    auto arr = std::get_if<JArray>(this->at(key));
-    return arr ? std::make_optional(arr) : std::nullopt;
+    auto arr = std::get_if<std::unique_ptr<JArray>>(this->at(key));
+    return arr ? std::make_optional(arr->get()) : std::nullopt;
 }
 
-std::optional<JObject *> JObject::getObject(const JKey &key)
+std::optional<const JObject *> JObject::getObject(const JKey &key) const
 {
     auto optValue = this->at(key);
     if (!optValue) {
         return std::nullopt;
     }
 
-    auto obj = std::get_if<JObject>(optValue);
-    return obj ? std::make_optional(obj) : std::nullopt;
+    auto obj = std::get_if<std::unique_ptr<JObject>>(optValue);
+    return obj ? std::make_optional(obj->get()) : std::nullopt;
 }
 
-std::list<std::optional<JObject *>> JObject::getArrayObject(const JKey &key)
+std::vector<std::optional<const JObject *>> JObject::getArrayObject(const JKey &key) const
 {
     auto optValue = this->at(key);
     if (!optValue) {
         return {};
     }
 
-    auto arr = std::get_if<JArray>(optValue);
+    auto arr = std::get_if<std::unique_ptr<JArray>>(optValue);
     if (!arr) {
         return {};
     }
 
-    const auto &data = arr->data();
+    const auto &data = arr->get()->data();
     if (!data.has_value()) {
         return {};
     }
 
-    std::list<std::optional<JObject *>> result;
+    std::vector<std::optional<const JObject *>> result;
     for (auto v : data.value()) {
-        if (auto o = std::get_if<JObject>(v)) {
-            result.emplace_back(o);
+        if (auto o = std::get_if<std::unique_ptr<JObject>>(v)) {
+            result.emplace_back(o->get());
         } else {
             break;
         }
@@ -195,24 +183,24 @@ bool JObject::getBool(const JKey &key) const
         return {};
     }
 
-    if (!std::holds_alternative<bool>(optValue.value())) {
+    if (!std::holds_alternative<bool>(*optValue.value())) {
         return {};
     }
 
-    return std::get<bool>(optValue.value());
+    return std::get<bool>(*optValue.value());
 }
 
-std::list<int64_t> JObject::getArrayNumberInt64(const JKey &key) const
+std::vector<int64_t> JObject::getArrayNumberInt64(const JKey &key) const
 {
     return getArrayOf<int64_t, JNumber>(key);
 }
 
-std::list<std::string> JObject::getArrayString(const JKey &key) const
+std::vector<std::string> JObject::getArrayString(const JKey &key) const
 {
     return getArrayOf<std::string, JString>(key);
 }
 
-std::list<std::wstring> JObject::getArrayStringW(const JKey &key) const
+std::vector<std::wstring> JObject::getArrayStringW(const JKey &key) const
 {
     return getArrayOf<std::wstring, JString>(key);
 }
@@ -225,11 +213,11 @@ T JObject::getNumber(const JKey &key) const
         return {};
     }
 
-    if (!std::holds_alternative<JNumber>(optValue.value())) {
+    if (!std::holds_alternative<JNumber>(*optValue.value())) {
         return {};
     }
 
-    auto v = std::get<JNumber>(optValue.value());
+    auto v = std::get<JNumber>(*optValue.value());
     T result = getAs<T, JNumber>(v);
     return result;
 }
@@ -242,34 +230,34 @@ T JObject::getString(const JKey &key) const
         return {};
     }
 
-    if (!std::holds_alternative<JString>(optValue.value())) {
+    if (!std::holds_alternative<JString>(*optValue.value())) {
         return {};
     }
 
-    auto v = std::get<JString>(optValue.value());
+    auto v = std::get<JString>(*optValue.value());
     T result = getAs<T, JString>(v);
     return result;
 }
 
 template <typename T, typename V>
-std::list<T> JObject::getArrayOf(const JKey &key) const
+std::vector<T> JObject::getArrayOf(const JKey &key) const
 {
     auto optValue = this->get(key);
     if (!optValue.has_value()) {
         return {};
     }
 
-    if (!std::holds_alternative<JArray>(optValue.value())) {
+    if (!std::holds_alternative<std::unique_ptr<JArray>>(*optValue.value())) {
         return {};
     }
 
-    auto &arr = std::get<JArray>(optValue.value());
-    const auto &data = arr.data();
+    const auto &arr = std::get<std::unique_ptr<JArray>>(*optValue.value());
+    const auto &data = arr->data();
     if (!data.has_value()) {
         return {};
     }
 
-    std::list<T> result;
+    std::vector<T> result;
     for (const auto &v : data.value()) {
         result.emplace_back(getAs<T, V>(*v));
     }
@@ -294,7 +282,8 @@ R JObject::getAs(const JValue &value) const
                             using TypeStringValue = std::decay_t<decltype(v)>;
                             if constexpr (std::is_same_v<R, std::string> && std::is_same_v<std::string, TypeStringValue>) {
                                 result = v;
-                            } else if constexpr (std::is_same_v<R, std::wstring> && std::is_same_v<std::string, TypeStringValue>) {
+                            } else if constexpr (std::is_same_v<R, std::wstring>
+                                                 && std::is_same_v<std::string, TypeStringValue>) {
                                 result = tools::utf8_to_wstring(v);
                             } else if constexpr (std::is_same_v<std::string, TypeStringValue>) {
                                 // @todo: remove std::wstring from JString variant
@@ -305,8 +294,8 @@ R JObject::getAs(const JValue &value) const
                             }
                         },
                         v);
-                } else if constexpr (std::is_same_v<V, JObject>) {
-                    result = R(v);
+                } else if constexpr (std::is_same_v<V, std::unique_ptr<JObject>>) {
+                    result = R(v->get());
                 } else {
                     static_assert(always_false_v<V>, "not implemented V handler");
                 }
