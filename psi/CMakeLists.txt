@@ -12,6 +12,7 @@ set(SOURCES
 )
 
 add_library(psi-json ${SOURCES})
+psi_config_target(psi-json)
 
 set(TEST_SRC
     tests/JsonParserTests.cpp
