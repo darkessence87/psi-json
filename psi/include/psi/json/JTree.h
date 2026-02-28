@@ -8,7 +8,7 @@
 namespace psi::json {
 
 /**
- * @brief 
+ * @brief JTree
  * 
  */
 class JTree final
@@ -23,7 +23,7 @@ public:
     /**
      * @brief Construct a new JTree object
      * 
-     * @param head 
+     * @param head head
      */
     JTree(JValue &&head);
 
@@ -33,21 +33,21 @@ public:
     JTree &operator=(JTree &&) = default;
 
     /**
-     * @brief 
+     * @brief asObject
      * 
      * @return std::optional<JObject *> 
      */
     std::optional<const JObject *> asObject();
 
     /**
-     * @brief 
+     * @brief asArray
      * 
      * @return std::optional<JArray *> 
      */
     std::optional<const JArray *> asArray();
 
     /**
-     * @brief 
+     * @brief toString
      * 
      * @return std::string 
      */

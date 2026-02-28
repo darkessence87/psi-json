@@ -16,6 +16,9 @@
 
 namespace psi::json {
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+
 const char JsonParser::TRUE_STR[4] = {'t', 'r', 'u', 'e'};
 const char JsonParser::FALSE_STR[5] = {'f', 'a', 'l', 's', 'e'};
 const char JsonParser::NULL_STR[4] = {'n', 'u', 'l', 'l'};
@@ -75,7 +78,7 @@ JTree JsonParser::parse(auto &is)
     std::stack<std::variant<JObject *, JArray *>> stack;
 
     JValue head;
-    if (!parseValue(is, (JObject *)nullptr, head)) {
+    if (!parseValue(is, JParent {static_cast<JObject *>(nullptr)}, head)) {
         return {};
     }
 
@@ -304,7 +307,7 @@ int8_t JsonParser::convertUtf8Char(uint16_t c, uint8_t result[3])
 }
 
 template <size_t SZ>
-bool JsonParser::parseString(auto &is, auto &value)
+bool JsonParser::parseString(auto &is, char *value)
 {
     if (nextChar(is) != '"') {
         return false;
@@ -335,7 +338,7 @@ bool JsonParser::parseString(auto &is, auto &value)
                 uint8_t converted[2];
                 int8_t len = convertUtf8Char(uint8_t(pC), converted);
                 while (len > 0) {
-                    value[index++] = converted[len - 1];
+                    value[index++] = static_cast<char>(converted[len - 1]);
                     --len;
                 }
                 value[index++] = c;
@@ -347,7 +350,7 @@ bool JsonParser::parseString(auto &is, auto &value)
                 uint8_t t = 0;
                 int8_t j = 3;
                 while (j >= 0) {
-                    is.read((char *)&t, 1);
+                    is.read(reinterpret_cast<char*>(&t), 1);
                     if (std::isdigit(t)) {
                         temp |= (t - 0x30) << (j * 4);
                     } else if (std::isxdigit(t)) {
@@ -364,7 +367,7 @@ bool JsonParser::parseString(auto &is, auto &value)
                 uint8_t converted[3];
                 int8_t len = convertUtf8Char(temp, converted);
                 while (len > 0) {
-                    value[index++] = converted[len - 1];
+                    value[index++] = static_cast<char>(converted[len - 1]);
                     --len;
                 }
             } else {
@@ -525,5 +528,7 @@ void JsonParser::putNextObject(auto &is, JParent parent, auto &stack)
         break;
     }
 }
+
+#pragma clang diagnostic pop
 
 } // namespace psi::json

@@ -1,10 +1,9 @@
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include "psi/test/psi_mock.h"
 
 #include "psi/json/JTree.h"
 
-using namespace ::testing;
 using namespace psi::json;
+using namespace psi::test;
 
 TEST(JTypesTests, toString)
 {

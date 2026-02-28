@@ -148,17 +148,17 @@ int16_t JObject::getNumberInt16(const JKey &key) const
 
 uint64_t JObject::getNumberUInt64(const JKey &key) const
 {
-    return getNumber<int64_t>(key);
+    return static_cast<uint64_t>(getNumber<int64_t>(key));
 }
 
 uint32_t JObject::getNumberUInt32(const JKey &key) const
 {
-    return getNumber<int32_t>(key);
+    return static_cast<uint32_t>(getNumber<int32_t>(key));
 }
 
 uint16_t JObject::getNumberUInt16(const JKey &key) const
 {
-    return getNumber<int16_t>(key);
+    return static_cast<uint16_t>(getNumber<int16_t>(key));
 }
 
 double_t JObject::getNumberDouble(const JKey &key) const
@@ -275,16 +275,16 @@ R JObject::getAs(const JValue &value) const
                 if constexpr (std::is_same_v<V, JNull>) {
                     // not implemented yet
                 } else if constexpr (std::is_same_v<V, JNumber>) {
-                    std::visit([&result](auto &&v) { result = static_cast<R>(v); }, v);
+                    std::visit([&result](auto &&vv) { result = static_cast<R>(vv); }, v);
                 } else if constexpr (std::is_same_v<V, JString>) {
                     std::visit(
-                        [&result](auto &&v) {
-                            using TypeStringValue = std::decay_t<decltype(v)>;
+                        [&result](auto &&vv) {
+                            using TypeStringValue = std::decay_t<decltype(vv)>;
                             if constexpr (std::is_same_v<R, std::string> && std::is_same_v<std::string, TypeStringValue>) {
-                                result = v;
+                                result = vv;
                             } else if constexpr (std::is_same_v<R, std::wstring>
                                                  && std::is_same_v<std::string, TypeStringValue>) {
-                                result = tools::utf8_to_wstring(v);
+                                result = tools::utf8_to_wstring(vv);
                             } else if constexpr (std::is_same_v<std::string, TypeStringValue>) {
                                 // @todo: remove std::wstring from JString variant
                             } else if constexpr (std::is_same_v<std::wstring, TypeStringValue>) {

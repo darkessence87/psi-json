@@ -1,15 +1,11 @@
-#include "TestHelper.h"
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include "psi/test/psi_mock.h"
+#include "psi/test/TestHelper.h"
 
-#define private public
 #include "psi/json/JsonParser.h"
-#undef private
 
 #include <fstream>
 #include <stack>
 
-using namespace ::testing;
 using namespace psi::json;
 using namespace psi::test;
 

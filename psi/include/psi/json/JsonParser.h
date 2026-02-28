@@ -5,32 +5,32 @@
 namespace psi::json {
 
 /**
- * @brief 
+ * @brief JsonParser
  * 
  */
 class JsonParser
 {
 public:
     /**
-     * @brief 
+     * @brief loadFromFile
      * 
-     * @param fName 
+     * @param fName fName
      * @return JTree 
      */
     static JTree loadFromFile(const std::string &fName);
 
     /**
-     * @brief 
+     * @brief loadFromFile
      * 
-     * @param fName 
+     * @param fName fName
      * @return JTree 
      */
     static JTree loadFromFile(const std::wstring &fName);
 
     /**
-     * @brief 
+     * @brief loadFromString
      * 
-     * @param str 
+     * @param str str
      * @return JTree 
      */
     static JTree loadFromString(const std::string &str);
@@ -47,7 +47,7 @@ private:
     static int8_t convertUtf8Char(uint8_t c, uint8_t result[2]);
     static int8_t convertUtf8Char(uint16_t c, uint8_t result[3]);
     template <size_t SZ>
-    static bool parseString(auto &is, auto &value);
+    static bool parseString(auto &is, char *value);
     static bool parseValue(auto &is, JParent parent, JValue &value);
     static JParent getParent(JParent &parent);
     static bool parseObject(auto &is, JObject &obj, auto &stack);

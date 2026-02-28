@@ -10,7 +10,7 @@ namespace psi::json {
 class JsonParser;
 
 /**
- * @brief 
+ * @brief JArray represents json array in memory
  * 
  */
 class JArray
@@ -24,41 +24,41 @@ public:
     /**
      * @brief Construct a new JArray object
      * 
-     * @param parent 
+     * @param parent parent
      */
     JArray(JParent parent);
 
     /**
      * @brief Construct a new JArray object
      * 
-     * @param value 
+     * @param value value
      */
     void add(JValue &&value);
 
     /**
-     * @brief 
+     * @brief Gives access to data as vector of pointers
      * 
      * @return std::optional<std::vector<const JValue *>>
      */
     std::optional<std::vector<const JValue *>> data() const;
 
     /**
-     * @brief 
+     * @brief Gives access to parent
      * 
      * @return JParent 
      */
     JParent parent() const;
 
     /**
-     * @brief 
+     * @brief Logger operator
      * 
-     * @param os 
+     * @param os os
      * @return std::ostream& 
      */
     std::ostream &operator<<(std::ostream &os) const;
 
     /**
-     * @brief 
+     * @brief Represents as string
      * 
      * @return std::string 
      */
