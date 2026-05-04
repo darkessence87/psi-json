@@ -32,7 +32,7 @@ std::string JTree::toString() const
         return std::get<std::unique_ptr<JArray>>(m_head)->toString();
     }
 
-    return "";
+    return std::string{};
 }
 
 } // namespace psi::json
