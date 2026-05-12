@@ -49,7 +49,7 @@ JTree JsonParser::loadFromFile(const std::string &fName)
 
 JTree JsonParser::loadFromFile(const std::wstring &fName)
 {
-    std::ifstream f(fName);
+    std::ifstream f(tools::wstring_to_utf8(fName));
     if (!f.is_open()) {
         LOG_ERROR_STATIC("Could not open fName: " << tools::wstring_to_utf8(fName));
         return {};

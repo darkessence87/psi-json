@@ -49,6 +49,8 @@ std::string JArray::toString() const
                     os << v->toString();
                 } else if constexpr (std::is_same_v<T, std::unique_ptr<JArray>>) {
                     os << v->toString();
+                } else if constexpr (std::is_same_v<T, std::nullptr_t>) {
+                    os << "null";
                 } else {
                     os << v;
                 }
