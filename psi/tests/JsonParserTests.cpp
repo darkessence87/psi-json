@@ -3,6 +3,7 @@
 
 #include "psi/json/JsonParser.h"
 
+#include <cstdio>
 #include <fstream>
 #include <stack>
 
@@ -224,4 +225,126 @@ TEST(JsonParserTests, loadFromString)
                                  "\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 "
                                  "555-4567\"}],\"children\":[\"Catherine\",\"Thomas\",\"Trevor\"],\"spouse\":null}";
     EXPECT_EQ(head.toString(), expected);
+}
+
+TEST(JsonParserTests, loadFromFile_wstring_success)
+{
+    auto tree = JsonParser::loadFromFile(L"test.json");
+    EXPECT_TRUE(tree.asObject().has_value());
+}
+
+TEST(JsonParserTests, loadFromFile_string_not_found)
+{
+    auto tree = JsonParser::loadFromFile("no_such_file_xyz.json");
+    EXPECT_FALSE(tree.asObject().has_value());
+}
+
+TEST(JsonParserTests, loadFromFile_string_empty)
+{
+    {
+        std::ofstream f("_empty_tmp.json");
+    }
+    auto tree = JsonParser::loadFromFile("_empty_tmp.json");
+    EXPECT_FALSE(tree.asObject().has_value());
+    std::remove("_empty_tmp.json");
+}
+
+TEST(JsonParserTests, loadFromFile_wstring_not_found)
+{
+    auto tree = JsonParser::loadFromFile(L"no_such_file_xyz.json");
+    EXPECT_FALSE(tree.asObject().has_value());
+}
+
+TEST(JsonParserTests, loadFromFile_wstring_empty)
+{
+    {
+        std::ofstream f("_empty_tmp2.json");
+    }
+    auto tree = JsonParser::loadFromFile(L"_empty_tmp2.json");
+    EXPECT_FALSE(tree.asObject().has_value());
+    std::remove("_empty_tmp2.json");
+}
+
+TEST(JsonParserTests, loadFromString_empty_fails)
+{
+    auto t = JsonParser::loadFromString("");
+    EXPECT_FALSE(t.asObject().has_value());
+}
+
+TEST(JsonParserTests, loadFromString_non_object_root_fails)
+{
+    // A bare string is not a valid JSON root (not object/array)
+    auto t = JsonParser::loadFromString("\"hello\"");
+    EXPECT_FALSE(t.asObject().has_value());
+}
+
+TEST(JsonParserTests, loadFromString_null_root_fails)
+{
+    auto t = JsonParser::loadFromString("null");
+    EXPECT_FALSE(t.asObject().has_value());
+}
+
+TEST(JsonParserTests, loadFromString_number_root_fails)
+{
+    auto t = JsonParser::loadFromString("42");
+    EXPECT_FALSE(t.asObject().has_value());
+}
+
+TEST(JsonParserTests, loadFromString_bool_root_fails)
+{
+    auto t = JsonParser::loadFromString("true");
+    EXPECT_FALSE(t.asObject().has_value());
+}
+
+TEST(JsonParserTests, loadFromString_array_root)
+{
+    auto t = JsonParser::loadFromString("[1,2,3]");
+    EXPECT_TRUE(t.asArray().has_value());
+    EXPECT_FALSE(t.asObject().has_value());
+}
+
+TEST(JsonParserTests, parseNumber_float)
+{
+    auto t = JsonParser::loadFromString("{\"x\":3.14}");
+    EXPECT_TRUE(t.asObject().has_value());
+    EXPECT_EQ(t.asObject().value()->getNumberDouble("x"), double_t{3.14});
+}
+
+TEST(JsonParserTests, parseNumber_negative_int16)
+{
+    auto t = JsonParser::loadFromString("{\"x\":-100}");
+    EXPECT_TRUE(t.asObject().has_value());
+    EXPECT_EQ(t.asObject().value()->getNumberInt16("x"), int32_t{-100});
+}
+
+TEST(JsonParserTests, parseNumber_negative_int32)
+{
+    auto t = JsonParser::loadFromString("{\"x\":-100000}");
+    EXPECT_TRUE(t.asObject().has_value());
+    EXPECT_EQ(t.asObject().value()->getNumberInt32("x"), int32_t{-100000});
+}
+
+TEST(JsonParserTests, parseNumber_negative_int64)
+{
+    auto t = JsonParser::loadFromString("{\"x\":-10000000000}");
+    EXPECT_TRUE(t.asObject().has_value());
+    EXPECT_EQ(t.asObject().value()->getNumberInt64("x"), int64_t{-10000000000LL});
+}
+
+TEST(JsonParserTests, parseTrue_invalid_fails)
+{
+    auto t = JsonParser::loadFromString("{\"x\":tXue}");
+    EXPECT_FALSE(t.asObject().has_value());
+}
+
+TEST(JsonParserTests, parseFalse_invalid_fails)
+{
+    auto t = JsonParser::loadFromString("{\"x\":fXlse}");
+    EXPECT_FALSE(t.asObject().has_value());
+}
+
+TEST(JsonParserTests, parseNull_invalid_fails)
+{
+    auto t = JsonParser::loadFromString("{\"x\":nXll}");
+    EXPECT_FALSE(t.asObject().has_value());
 }
