@@ -1,5 +1,6 @@
 #include "psi/json/JsonParser.h"
 
+#include <cstring>
 #include <errno.h>
 #include <fstream>
 #include <stack>
@@ -29,42 +30,40 @@ const size_t JsonParser::STR_MAX_LEN = 0x10000; // 65536u;  // 2^16;
 
 JTree JsonParser::loadFromFile(const std::string &fName)
 {
-    std::ifstream f(fName);
+    std::ifstream f(fName, std::ios::binary);
     if (!f.is_open()) {
         LOG_ERROR_STATIC("Could not open fName: " << fName);
         return {};
     }
 
-    if (f.eof()) {
+    std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    f.close();
+
+    if (content.empty()) {
         LOG_ERROR_STATIC("File is empty, fName: " << fName);
-        f.close();
         return {};
     }
 
-    auto jtree = parse(f);
-    f.close();
-
-    return jtree;
+    return loadFromString(content);
 }
 
 JTree JsonParser::loadFromFile(const std::wstring &fName)
 {
-    std::ifstream f(tools::wstring_to_utf8(fName));
+    std::ifstream f(tools::wstring_to_utf8(fName), std::ios::binary);
     if (!f.is_open()) {
         LOG_ERROR_STATIC("Could not open fName: " << tools::wstring_to_utf8(fName));
         return {};
     }
 
-    if (f.eof()) {
+    std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    f.close();
+
+    if (content.empty()) {
         LOG_ERROR_STATIC("File is empty, fName: " << tools::wstring_to_utf8(fName));
-        f.close();
         return {};
     }
 
-    auto jtree = parse(f);
-    f.close();
-
-    return jtree;
+    return loadFromString(content);
 }
 
 JTree JsonParser::loadFromString(const std::string &str)
@@ -177,6 +176,7 @@ bool JsonParser::parseNumber(auto &is, char c, JValue &value)
 {
     size_t index = 0;
     char temp[NUMBER_MAX_LEN];
+    std::memset(temp, 0, NUMBER_MAX_LEN);
     temp[index++] = c;
     char t;
     bool containsFloat = false;
@@ -204,7 +204,7 @@ bool JsonParser::parseNumber(auto &is, char c, JValue &value)
             }
             continue;
         }
-        is.seekg(-1, std::ios_base::cur);
+        is.unget();
         break;
     }
     temp[index++] = '\0';
@@ -214,36 +214,40 @@ bool JsonParser::parseNumber(auto &is, char c, JValue &value)
     }
 
     if (containsFloat) {
-        value = std::strtod(temp, nullptr);
+        value = JNumber{std::strtod(temp, nullptr)};
         if (errno == ERANGE) {
             errno = 0;
-            // LOG_ERROR_STATIC("Failed parsing data. Error parse number value: " << temp);
         }
         return true;
     }
 
     if (c == '-') {
+        errno = 0;
         int64_t v = std::strtoll(temp, nullptr, 10);
-        if (std::abs(v) < 0x10000) {
-            value = static_cast<int16_t>(v);
-        } else if (std::abs(v) < 0x100000000) {
-            value = static_cast<int32_t>(v);
+        bool rangeErr = (errno == ERANGE);
+        errno = 0;
+        if (rangeErr) {
+            value = JNumber{static_cast<uint16_t>(0)};
+        } else if (v >= -32768) {
+            value = JNumber{static_cast<int16_t>(v)};
+        } else if (v >= -2147483648LL) {
+            value = JNumber{static_cast<int32_t>(v)};
         } else {
-            value = v;
+            value = JNumber{v};
         }
     } else {
-        uint64_t v = std::strtoull(temp, nullptr, 10);
-        if (v < 0x10000) {
-            value = static_cast<uint16_t>(v);
-        } else if (v < 0x100000000) {
-            value = static_cast<uint32_t>(v);
-        } else {
-            value = v;
-        }
-    }
-    if (errno == ERANGE) {
         errno = 0;
-        // LOG_ERROR_STATIC("Failed parsing data. Error parse number value: " << temp);
+        uint64_t v = std::strtoull(temp, nullptr, 10);
+        bool rangeErr = (errno == ERANGE);
+        errno = 0;
+        if (v < 0x10000) {
+            value = JNumber{static_cast<uint16_t>(v)};
+        } else if (v < 0x100000000) {
+            value = JNumber{static_cast<uint32_t>(v)};
+        } else {
+            value = JNumber{v};  // ULLONG_MAX when overflow (ERANGE)
+        }
+        (void)rangeErr;
     }
     return true;
 }
@@ -408,7 +412,7 @@ bool JsonParser::parseValue(auto &is, JParent parent, JValue &value)
         value = std::make_unique<JArray>(parent);
         return true;
     case '"': {
-        is.seekg(-1, std::ios_base::cur);
+        is.unget();
         char str[STR_MAX_LEN];
         if (!parseString<STR_MAX_LEN>(is, str)) {
             return false;
@@ -461,12 +465,12 @@ bool JsonParser::parseObject(auto &is, JObject &obj, auto &stack)
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<std::unique_ptr<JObject>, T>) {
                 if (!nextParentAvailable(is)) {
-                    is.seekg(-1, std::ios_base::cur);
+                    is.unget();
                     stack.emplace(std::get_if<std::unique_ptr<JObject>>(obj.at(key))->get());
                 }
             } else if constexpr (std::is_same_v<std::unique_ptr<JArray>, T>) {
                 if (!nextParentAvailable(is)) {
-                    is.seekg(-1, std::ios_base::cur);
+                    is.unget();
                     stack.emplace(std::get_if<std::unique_ptr<JArray>>(obj.at(key))->get());
                 }
             }
@@ -490,12 +494,12 @@ bool JsonParser::parseArray(auto &is, JArray &arr, auto &stack)
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<std::unique_ptr<JObject>, T>) {
                 if (!nextParentAvailable(is)) {
-                    is.seekg(-1, std::ios_base::cur);
+                    is.unget();
                     stack.emplace(std::get<std::unique_ptr<JObject>>(arr.m_data.back()).get());
                 }
             } else if constexpr (std::is_same_v<std::unique_ptr<JArray>, T>) {
                 if (!nextParentAvailable(is)) {
-                    is.seekg(-1, std::ios_base::cur);
+                    is.unget();
                     stack.emplace(std::get<std::unique_ptr<JArray>>(arr.m_data.back()).get());
                 }
             }
@@ -510,9 +514,9 @@ void JsonParser::putNextObject(auto &is, JParent parent, auto &stack)
 {
     while (true) {
         if (!nextChildAvailable(is)) {
-            is.seekg(-1, std::ios_base::cur);
+            is.unget();
             if (!nextParentAvailable(is)) {
-                is.seekg(-1, std::ios_base::cur);
+                is.unget();
             }
             parent = getParent(parent);
 

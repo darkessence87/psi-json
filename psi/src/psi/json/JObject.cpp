@@ -54,7 +54,12 @@ std::string JObject::toString() const
     std::ostringstream os;
 
     os << "{";
+    bool first = true;
     for (const auto &it : m_data_indices) {
+        if (!first) {
+            os << ",";
+        }
+        first = false;
         os << "\"" << it->first << "\":";
         std::visit(
             [&os](auto &&v) {
@@ -72,10 +77,6 @@ std::string JObject::toString() const
                 }
             },
             it->second);
-        os << ",";
-    }
-    if (!m_data_indices.empty()) {
-        os.seekp(-1, std::ios_base::cur);
     }
     os << "}";
 

@@ -41,7 +41,12 @@ std::string JArray::toString() const
     std::ostringstream os;
 
     os << "[";
+    bool first = true;
     for (const auto &value : m_data) {
+        if (!first) {
+            os << ",";
+        }
+        first = false;
         std::visit(
             [&os](auto &&v) {
                 using T = std::decay_t<decltype(v)>;
@@ -54,12 +59,8 @@ std::string JArray::toString() const
                 } else {
                     os << v;
                 }
-                os << ",";
             },
             value);
-    }
-    if (!m_data.empty()) {
-        os.seekp(-1, std::ios_base::cur);
     }
     os << "]";
     return os.str();
