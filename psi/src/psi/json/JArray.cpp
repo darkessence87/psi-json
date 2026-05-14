@@ -56,6 +56,8 @@ std::string JArray::toString() const
                     os << v->toString();
                 } else if constexpr (std::is_same_v<T, std::nullptr_t>) {
                     os << "null";
+                } else if constexpr (std::is_same_v<T, bool>) {
+                    os << std::boolalpha << v;
                 } else {
                     os << v;
                 }

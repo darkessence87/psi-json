@@ -348,3 +348,46 @@ TEST(JsonParserTests, parseNull_invalid_fails)
     auto t = JsonParser::loadFromString("{\"x\":nXll}");
     EXPECT_FALSE(t.asObject().has_value());
 }
+
+TEST(JsonParserTests, getString_decodes_escape_sequences)
+{
+    // RFC 8259 §7: escape sequences MUST be decoded when reading a string value.
+    // Bug: getString() currently returns the raw escaped content, not the decoded value.
+    auto tree = JsonParser::loadFromString(R"({"key": "foo\"bar\\baz"})");
+    auto root = tree.asObject();
+    EXPECT_TRUE(root.has_value());
+    const std::string result = root.value()->getString("key");
+    // Expected: foo"bar\baz  (decoded)
+    // Bug produces: foo\"bar\\baz  (raw)
+    EXPECT_EQ(result, std::string("foo\"bar\\baz"));
+}
+
+TEST(JsonParserTests, getString_decodes_newline_tab)
+{
+    auto tree = JsonParser::loadFromString(R"({"key": "line1\nline2\ttab"})");
+    auto root = tree.asObject();
+    EXPECT_TRUE(root.has_value());
+    const std::string result = root.value()->getString("key");
+    EXPECT_EQ(result, std::string("line1\nline2\ttab"));
+}
+
+TEST(JsonParserTests, toString_quotes_string_values)
+{
+    const std::string input = R"({"key":"hello world","nested":"foo\"bar"})";
+    auto tree = JsonParser::loadFromString(input);
+    EXPECT_EQ(tree.toString(), input);
+}
+
+TEST(JsonParserTests, toString_array_with_strings)
+{
+    const std::string input = R"({"arr":["a","b","c"]})";
+    auto tree = JsonParser::loadFromString(input);
+    EXPECT_EQ(tree.toString(), input);
+}
+
+TEST(JsonParserTests, toString_array_with_bools)
+{
+    const std::string input = R"({"arr":[true,false,true]})";
+    auto tree = JsonParser::loadFromString(input);
+    EXPECT_EQ(tree.toString(), input);
+}

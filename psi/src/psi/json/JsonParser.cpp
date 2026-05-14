@@ -319,6 +319,7 @@ bool JsonParser::parseString(auto &is, char *value)
 
     char c = 0, pC = 0, ppC = 0;
     size_t index = 0;
+    bool inEscape = false;
     do {
         is.read(&c, 1);
         if (c != '"') {
@@ -335,6 +336,7 @@ bool JsonParser::parseString(auto &is, char *value)
                         return false;
                     }
                 }
+                inEscape = false;
             } else if (pC < 0 && ppC >= 0) {
                 if (index + 3 >= SZ - 1) {
                     return false;
@@ -346,7 +348,8 @@ bool JsonParser::parseString(auto &is, char *value)
                     --len;
                 }
                 value[index++] = c;
-            } else if (pC == '\\' && c == 'u') {
+                inEscape = false;
+            } else if (inEscape && c == 'u') {
                 if (index + 4 >= SZ - 1) {
                     return false;
                 }
@@ -374,18 +377,40 @@ bool JsonParser::parseString(auto &is, char *value)
                     value[index++] = static_cast<char>(converted[len - 1]);
                     --len;
                 }
+                inEscape = false;
+            } else if (inEscape) {
+                // Decode escape sequence: overwrite the stored '\' with the decoded char.
+                --index;
+                switch (c) {
+                case '\\': value[index++] = '\\'; break;
+                case '/':  value[index++] = '/';  break;
+                case 'b':  value[index++] = '\b'; break;
+                case 'f':  value[index++] = '\f'; break;
+                case 'n':  value[index++] = '\n'; break;
+                case 'r':  value[index++] = '\r'; break;
+                case 't':  value[index++] = '\t'; break;
+                default:   value[index++] = c;    break;
+                }
+                if (index >= SZ - 1) {
+                    return false;
+                }
+                inEscape = false;
             } else {
+                inEscape = (c == '\\');
                 value[index++] = c;
                 if (index >= SZ - 1) {
                     return false;
                 }
             }
         } else {
-            if (pC == '\\' && ppC != '\\') {
+            if (inEscape) {
+                // \" — escaped double-quote
+                --index; // remove stored '\'
                 if (index + 2 >= SZ - 1) {
                     return false;
                 }
-                value[index++] = c;
+                value[index++] = '"';
+                inEscape = false;
             } else {
                 if (index >= SZ - 1) {
                     return false;
